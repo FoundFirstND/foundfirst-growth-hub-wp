@@ -1,0 +1,71 @@
+<?xml version="1.0"?>
+<ruleset name="FoundFirst Growth Hub">
+	<description>WordPress coding standards + PHP 8.1 compatibility.</description>
+
+	<file>foundfirst-growth-hub.php</file>
+	<file>uninstall.php</file>
+	<file>src</file>
+	<file>tests</file>
+
+	<arg name="extensions" value="php"/>
+	<arg name="colors"/>
+	<arg value="sp"/>
+
+	<config name="testVersion" value="8.1-"/>
+	<config name="minimum_wp_version" value="6.4"/>
+
+	<rule ref="PHPCompatibility"/>
+
+	<rule ref="WordPress-Extra">
+		<!-- PSR-4 file names (src/Leads/LeadSender.php) instead of class-lead-sender.php. -->
+		<exclude name="WordPress.Files.FileName"/>
+		<!-- Short array syntax and short ternaries are fine on PHP 8.1. -->
+		<exclude name="Universal.Arrays.DisallowShortArraySyntax"/>
+	</rule>
+
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="foundfirst-growth-hub"/>
+			</property>
+		</properties>
+	</rule>
+
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="ffgh"/>
+				<element value="FoundFirst\GrowthHub"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!-- Tests use PHPUnit's camelCase API and don't run inside WordPress. -->
+	<rule ref="WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid">
+		<exclude-pattern>tests/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.NamingConventions.ValidVariableName">
+		<exclude-pattern>tests/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.WP.AlternativeFunctions">
+		<exclude-pattern>tests/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.Security.EscapeOutput">
+		<exclude-pattern>tests/*</exclude-pattern>
+	</rule>
+	<rule ref="Generic.CodeAnalysis.UnusedFunctionParameter">
+		<exclude-pattern>tests/*</exclude-pattern>
+	</rule>
+	<rule ref="Generic.CodeAnalysis.ForLoopWithTestFunctionCall">
+		<exclude-pattern>tests/*</exclude-pattern>
+	</rule>
+	<rule ref="Universal.NamingConventions.NoReservedKeywordParameterNames">
+		<exclude-pattern>tests/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound">
+		<exclude-pattern>tests/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound">
+		<exclude-pattern>tests/*</exclude-pattern>
+	</rule>
+</ruleset>

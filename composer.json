@@ -1,0 +1,40 @@
+{
+	"name": "foundfirst/growth-hub-wp",
+	"description": "FoundFirst Growth Hub WordPress plugin: Elementor Pro form leads and promo banner.",
+	"type": "wordpress-plugin",
+	"license": "proprietary",
+	"require": {
+		"php": ">=8.1",
+		"yahnis-elsts/plugin-update-checker": "^5.6"
+	},
+	"require-dev": {
+		"brain/monkey": "^2.6",
+		"dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+		"phpcompatibility/php-compatibility": "^10.0@alpha",
+		"phpunit/phpunit": "^11.5",
+		"wp-coding-standards/wpcs": "^3.1"
+	},
+	"autoload": {
+		"psr-4": {
+			"FoundFirst\\GrowthHub\\": "src/"
+		}
+	},
+	"autoload-dev": {
+		"psr-4": {
+			"FoundFirst\\GrowthHub\\Tests\\": "tests/"
+		}
+	},
+	"scripts": {
+		"test": "phpunit",
+		"lint": "phpcs",
+		"lint:fix": "phpcbf"
+	},
+	"config": {
+		"sort-packages": true,
+		"allow-plugins": {
+			"dealerdirect/phpcodesniffer-composer-installer": true
+		}
+	},
+	"minimum-stability": "stable",
+	"prefer-stable": true
+}
