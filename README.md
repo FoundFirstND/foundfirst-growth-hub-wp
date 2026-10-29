@@ -90,6 +90,8 @@ This starts MySQL, creates the `foundfirst_wp` database and installs WordPress i
 
 Point **Settings → Growth Hub** at `http://growth-hub.test` with a key from your local Growth Hub.
 
+> **Never click "Delete" on the plugin in the local site's Plugins screen.** It's a symlink to this repo, and WordPress may delete the repo's files through it. Deactivate it instead. To test uninstall, run `uninstall.php` with WP-CLI (`wp eval 'define("WP_UNINSTALL_PLUGIN", 1); include WP_PLUGIN_DIR . "/foundfirst-growth-hub/uninstall.php";'`), or use the release zip on a separate site.
+
 Useful commands (run in `~/Herd/foundfirst-wp`):
 
 ```bash
