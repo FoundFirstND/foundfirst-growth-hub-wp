@@ -3,7 +3,7 @@
  * Plugin Name:       FoundFirst Growth Hub
  * Plugin URI:        https://github.com/FoundFirstND/foundfirst-growth-hub-wp
  * Description:       Sends Elementor Pro form leads to FoundFirst Growth Hub and shows the Growth Hub promo banner.
- * Version:           0.1.0
+ * Version:           0.2.0
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            FoundFirst
@@ -17,7 +17,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'FFGH_VERSION', '0.1.0' );
+define( 'FFGH_VERSION', '0.2.0' );
 define( 'FFGH_FILE', __FILE__ );
 define( 'FFGH_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FFGH_URL', plugin_dir_url( __FILE__ ) );

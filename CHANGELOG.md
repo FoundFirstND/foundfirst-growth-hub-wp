@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0 (2026-10-30)
+
+- New setting **Settings → Growth Hub → Show photo on the banner**, off by default. When it's off the banner shows only the text and outputs no image at all.
+- Override per banner with `[growthhub_promo image="yes"]` / `image="no"`, or the Elementor widget's new **Show photo** switch.
+- **Behavior change:** banners that showed a photo in 0.1.0 show text only until the setting (or `image="yes"`) is turned on.
+
 ## 0.1.0 (2026-10-28)
 
 First version.
