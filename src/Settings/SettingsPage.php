@@ -86,6 +86,7 @@ final class SettingsPage {
 		$old_url = Options::base_url();
 		$old_key = Options::site_key();
 		Options::set( Options::BASE_URL, $url );
+		Options::set( Options::PROMO_IMAGE, empty( $_POST['ffgh_show_promo_image'] ) ? '0' : '1' );
 
 		$key    = isset( $_POST['ffgh_site_key'] ) ? trim( sanitize_text_field( wp_unslash( (string) $_POST['ffgh_site_key'] ) ) ) : '';
 		$remove = ! empty( $_POST['ffgh_remove_key'] );
@@ -216,6 +217,13 @@ final class SettingsPage {
 							<?php if ( $has_key ) : ?>
 								<label><input type="checkbox" name="ffgh_remove_key" value="1"> <?php esc_html_e( 'Remove the saved key', 'foundfirst-growth-hub' ); ?></label>
 							<?php endif; ?>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Promo banner', 'foundfirst-growth-hub' ); ?></th>
+						<td>
+							<label><input type="checkbox" name="ffgh_show_promo_image" value="1" <?php checked( Options::show_promo_image() ); ?>> <?php esc_html_e( 'Show photo on the banner', 'foundfirst-growth-hub' ); ?></label>
+							<p class="description"><?php esc_html_e( 'Off by default: the banner shows only the text. Override per banner with [growthhub_promo image="yes"] or image="no", or the Elementor widget\'s Show photo switch.', 'foundfirst-growth-hub' ); ?></p>
 						</td>
 					</tr>
 				</table>

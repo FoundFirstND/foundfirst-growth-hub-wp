@@ -1,6 +1,6 @@
 <?php
 /**
- * Just enough of Elementor / Elementor Pro for the form action to load in tests.
+ * Just enough of Elementor / Elementor Pro for the form action and promo widget to load in tests.
  *
  * @package FoundFirst\GrowthHub
  */
@@ -8,6 +8,12 @@
 // phpcs:disable
 
 namespace Elementor {
+	abstract class Widget_Base {
+		public function get_settings_for_display() {
+			return array();
+		}
+	}
+
 	class Controls_Manager {
 		const TEXT     = 'text';
 		const SWITCHER = 'switcher';

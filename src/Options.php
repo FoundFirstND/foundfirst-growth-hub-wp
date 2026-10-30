@@ -22,6 +22,7 @@ final class Options {
 	public const LAST_ALERT   = 'ffgh_last_alert_at';
 	public const DB_VERSION   = 'ffgh_db_version';
 	public const QUEUE_LOCK   = 'ffgh_queue_lock';
+	public const PROMO_IMAGE  = 'ffgh_show_promo_image';
 
 	public const DEFAULT_BASE_URL = 'https://app.foundfirst.us';
 
@@ -39,6 +40,13 @@ final class Options {
 	 */
 	public static function site_key(): string {
 		return (string) get_option( self::SITE_KEY, '' );
+	}
+
+	/**
+	 * Whether the promo banner shows the post's photo. Off unless turned on in the settings.
+	 */
+	public static function show_promo_image(): bool {
+		return '1' === (string) get_option( self::PROMO_IMAGE, '0' );
 	}
 
 	/**

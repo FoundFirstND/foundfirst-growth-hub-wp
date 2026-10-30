@@ -56,6 +56,10 @@ The visitor always sees the form's normal success message, and the form's other 
 
 - Shortcode: `[growthhub_promo]`, or `[growthhub_promo class="my-class"]` to add classes.
 - Elementor: drag in the **Growth Hub Promo** widget. In the editor it shows a placeholder when there's no promo, and visitors see nothing.
+- **Photo**: off by default, so the banner shows only the text. Turn on **Settings → Growth Hub → Show photo on the banner** to show the post's photo next to the text. Override it per banner:
+  - Shortcode: `[growthhub_promo image="yes"]` or `[growthhub_promo image="no"]`. Without `image`, the setting decides.
+  - Elementor widget: the **Show photo** switch. A new widget starts with the switch matching the setting. Widgets saved with v0.1.0 follow the setting until someone changes the switch.
+  - When the photo is off, no `<img>` is output at all, so it isn't downloaded either. The text always shows, with or without the photo.
 - The promo is fetched on the server and cached for 5 minutes. It's hidden after its `expires_at`. Page-cache plugins also cache the banner for their own cache lifetime.
 - Styling inherits the theme. You can override these classes:
 

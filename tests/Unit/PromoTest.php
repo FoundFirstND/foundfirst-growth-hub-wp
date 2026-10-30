@@ -9,11 +9,13 @@ namespace FoundFirst\GrowthHub\Tests\Unit;
 
 use Brain\Monkey\Functions;
 use FoundFirst\GrowthHub\Api\Response;
+use FoundFirst\GrowthHub\Elementor\PromoWidget;
 use FoundFirst\GrowthHub\Options;
 use FoundFirst\GrowthHub\Promo\PromoRenderer;
 use FoundFirst\GrowthHub\Promo\PromoService;
 use FoundFirst\GrowthHub\Tests\Fakes\FakeHttpClient;
 use FoundFirst\GrowthHub\Tests\TestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 final class PromoTest extends TestCase {
 
@@ -40,6 +42,13 @@ final class PromoTest extends TestCase {
 			}
 		);
 		Functions\when( 'sanitize_html_class' )->alias( fn ( $class ) => preg_replace( '/[^A-Za-z0-9_-]/', '', $class ) );
+		Functions\when( 'shortcode_atts' )->alias(
+			fn ( $defaults, $atts ) => array_merge( $defaults, array_intersect_key( (array) $atts, $defaults ) )
+		);
+	}
+
+	private function show_photos_setting( bool $on ): void {
+		$this->options[ Options::PROMO_IMAGE ] = $on ? '1' : '0';
 	}
 
 	private static function promo( array $overrides = array() ): Response {
@@ -73,6 +82,7 @@ final class PromoTest extends TestCase {
 	}
 
 	public function test_promo_renders_escaped_markup_with_link_and_image(): void {
+		$this->show_photos_setting( true );
 		$this->http->push( self::promo( array( 'text' => 'Deal <script>x</script> & more' ) ) );
 
 		$html = $this->renderer->render( 'my-banner bad"class' );
@@ -154,5 +164,72 @@ final class PromoTest extends TestCase {
 	public function test_exceptions_render_nothing(): void {
 		// FakeHttpClient throws when it has no scripted response.
 		$this->assertSame( '', $this->renderer->render() );
+	}
+
+	public function test_photo_is_off_by_default_and_no_image_is_output(): void {
+		$this->http->push( self::promo() );
+
+		$html = $this->renderer->render();
+
+		$this->assertFalse( Options::show_promo_image() );
+		$this->assertStringNotContainsString( '<img', $html );
+		$this->assertStringNotContainsString( '412.jpg', $html );
+		$this->assertStringNotContainsString( 'has-image', $html );
+		$this->assertStringContainsString( '<a class="ffgh-promo__link" href="https://redriversnow.com/deals"><span class="ffgh-promo__text">20% off driveway plowing this weekend only!</span></a>', $html );
+	}
+
+	public function test_text_always_renders_next_to_the_photo(): void {
+		$this->show_photos_setting( true );
+		$this->http->push( self::promo( array( 'link' => null ) ) );
+
+		$html = $this->renderer->render();
+
+		$this->assertMatchesRegularExpression(
+			'#<div class="ffgh-promo__inner"><img class="ffgh-promo__image" [^>]+><span class="ffgh-promo__text">20% off driveway plowing this weekend only!</span></div>#',
+			$html
+		);
+	}
+
+	public function test_a_promo_with_a_photo_but_no_text_is_not_shown(): void {
+		$this->show_photos_setting( true );
+		$this->http->push( self::promo( array( 'text' => '   ' ) ) );
+
+		$this->assertSame( '', $this->renderer->render() );
+	}
+
+	#[DataProvider( 'shortcode_image_cases' )]
+	public function test_shortcode_image_attribute_overrides_the_setting( bool $setting, array $atts, bool $expect_image ): void {
+		$this->show_photos_setting( $setting );
+		$this->http->push( self::promo() );
+
+		$html = $this->renderer->shortcode( $atts );
+
+		$this->assertSame( $expect_image, str_contains( $html, '<img' ) );
+		$this->assertStringContainsString( '<span class="ffgh-promo__text">20% off driveway plowing this weekend only!</span>', $html );
+	}
+
+	public static function shortcode_image_cases(): array {
+		return array(
+			'no attribute, setting off'  => array( false, array(), false ),
+			'no attribute, setting on'   => array( true, array(), true ),
+			'image="yes", setting off'   => array( false, array( 'image' => 'yes' ), true ),
+			'image="no", setting on'     => array( true, array( 'image' => 'no' ), false ),
+			'image="NO " is still no'    => array( true, array( 'image' => 'NO ' ), false ),
+			'unknown value uses setting' => array( true, array( 'image' => 'maybe' ), true ),
+		);
+	}
+
+	#[DataProvider( 'widget_switch_cases' )]
+	public function test_widget_switch_maps_to_show_image( $settings, ?bool $expected ): void {
+		$this->assertSame( $expected, PromoWidget::show_image( $settings ) );
+	}
+
+	public static function widget_switch_cases(): array {
+		return array(
+			'switch on'                       => array( array( 'show_image' => 'yes' ), true ),
+			'switch off'                      => array( array( 'show_image' => '' ), false ),
+			'saved before the switch existed' => array( array(), null ),
+			'no settings'                     => array( null, null ),
+		);
 	}
 }
