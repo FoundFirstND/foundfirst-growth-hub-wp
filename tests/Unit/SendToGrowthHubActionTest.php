@@ -10,10 +10,13 @@ namespace FoundFirst\GrowthHub\Tests\Unit;
 use Brain\Monkey\Functions;
 use FoundFirst\GrowthHub\Api\Response;
 use FoundFirst\GrowthHub\Elementor\SendToGrowthHubAction;
+use FoundFirst\GrowthHub\Analytics\Tracking;
 use FoundFirst\GrowthHub\Leads\FailureNotifier;
 use FoundFirst\GrowthHub\Leads\LeadSender;
 use FoundFirst\GrowthHub\Leads\RetryPolicy;
 use FoundFirst\GrowthHub\Leads\Status;
+use FoundFirst\GrowthHub\Options;
+use FoundFirst\GrowthHub\Tests\Fakes\FakeAjaxHandler;
 use FoundFirst\GrowthHub\Tests\Fakes\FakeFormRecord;
 use FoundFirst\GrowthHub\Tests\Fakes\FakeHttpClient;
 use FoundFirst\GrowthHub\Tests\Fakes\InMemoryQueue;
@@ -233,6 +236,52 @@ final class SendToGrowthHubActionTest extends TestCase {
 		// No scripted response: the fake HTTP client throws.
 		$this->action->run( new FakeFormRecord( self::fields(), self::settings() ), null );
 
+		$this->assertStringContainsString( 'Form action error', Status::last_error()['message'] );
+	}
+
+	private function run_with_handler( array $settings = array(), bool $deliver = true ): FakeAjaxHandler {
+		if ( $deliver ) {
+			$this->http->push( new Response( 201 ) );
+		}
+		$handler = new FakeAjaxHandler();
+		$this->action->run( new FakeFormRecord( self::fields(), self::settings( $settings ) ), $handler );
+
+		return $handler;
+	}
+
+	public function test_flags_the_response_for_google_analytics_with_the_form_name_only(): void {
+		$handler = $this->run_with_handler();
+
+		$this->assertSame( array( Tracking::RESPONSE_KEY => array( 'form_name' => 'Contact Us' ) ), $handler->data );
+
+		$json = (string) json_encode( $handler->data );
+		foreach ( array( 'Jane Doe', 'jane@example.com', '(701) 555-0100', '555-0100', 'Do you plow on Saturday?', '203.0.113.9' ) as $pii ) {
+			$this->assertStringNotContainsString( $pii, $json );
+		}
+	}
+
+	public function test_form_without_a_name_uses_its_element_id(): void {
+		$handler = $this->run_with_handler(
+			array(
+				'form_name' => '',
+				'id'        => '3f2a1b9',
+			)
+		);
+
+		$this->assertSame( 'form-3f2a1b9', $handler->data[ Tracking::RESPONSE_KEY ]['form_name'] );
+	}
+
+	public function test_no_flag_when_the_setting_is_off(): void {
+		$this->options[ Options::ANALYTICS ] = '0';
+
+		$this->assertSame( array(), $this->run_with_handler()->data );
+	}
+
+	public function test_flag_is_added_even_when_growth_hub_delivery_throws(): void {
+		// No scripted response: the fake HTTP client throws.
+		$handler = $this->run_with_handler( array(), false );
+
+		$this->assertArrayHasKey( Tracking::RESPONSE_KEY, $handler->data );
 		$this->assertStringContainsString( 'Form action error', Status::last_error()['message'] );
 	}
 }

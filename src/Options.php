@@ -23,6 +23,7 @@ final class Options {
 	public const DB_VERSION   = 'ffgh_db_version';
 	public const QUEUE_LOCK   = 'ffgh_queue_lock';
 	public const PROMO_IMAGE  = 'ffgh_show_promo_image';
+	public const ANALYTICS    = 'ffgh_analytics_events';
 
 	public const DEFAULT_BASE_URL = 'https://app.foundfirst.us';
 
@@ -47,6 +48,14 @@ final class Options {
 	 */
 	public static function show_promo_image(): bool {
 		return '1' === (string) get_option( self::PROMO_IMAGE, '0' );
+	}
+
+	/**
+	 * Whether call clicks and form leads are sent to Google Analytics. On unless turned off in
+	 * the settings, so sites updating from 0.2.x (no option saved yet) get it too.
+	 */
+	public static function analytics_enabled(): bool {
+		return '0' !== (string) get_option( self::ANALYTICS, '1' );
 	}
 
 	/**

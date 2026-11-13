@@ -4,6 +4,7 @@ Connects a client's WordPress site to [FoundFirst Growth Hub](https://app.foundf
 
 - **Leads**: an Elementor Pro form action, **Send to Growth Hub**, delivers form submissions to the business's Growth Hub inbox. If Growth Hub can't be reached, the lead is queued and retried, so no lead is lost.
 - **Promo banner**: `[growthhub_promo]` and an Elementor widget show the business's current promo, and nothing when there isn't one.
+- **Google Analytics events**: `click_to_call` for phone-link clicks and `generate_lead` for successful Growth Hub form submissions, so Growth Hub Reports can show call clicks and website form leads. No personal data is sent.
 - **Updates**: the plugin updates itself from this repo's GitHub releases through the normal WordPress update screen.
 
 The API contract is in [API.md](API.md).
@@ -71,6 +72,33 @@ The visitor always sees the form's normal success message, and the form's other 
     .ffgh-promo__text       <span>
 ```
 
+### Google Analytics events
+
+**Settings → Growth Hub → Send call clicks and form leads to Google Analytics** (on by default, also on sites that updated from 0.2.x). When it's off, the script isn't loaded at all.
+
+| Event | When | Parameters |
+|---|---|---|
+| `click_to_call` | A visitor clicks any `tel:` link, including Elementor buttons, popups and links added after the page loaded | `link_location`: `header`, `footer`, `popup`, the `aria-label` of the closest labelled section, or `page`; `page_path` |
+| `generate_lead` | An Elementor Pro form with **Send to Growth Hub** in its actions is submitted **successfully** (Elementor's `submit_success`) | `form_name`: the form's name, or `form-<element id>` if it has none; `page_path` |
+
+- **Never sent:** the phone number, names, emails, messages, any other field value, or the query string (`page_path` is the path only).
+- Forms without **Send to Growth Hub**, validation errors and failed submissions (including another action failing) send nothing. The server marks only Growth Hub forms' success responses, and the script listens only for `submit_success`.
+- A repeat click on the same link, or a repeat success for the same form, within 1 second counts once.
+- **How it's sent:** always `dataLayer.push({ event: 'click_to_call', ... })`. If the site has `gtag()` (Site Kit, a theme setting) **and no GTM container** (`GTM-...`), the event also goes through `gtag('event', ...)`. With GTM present, it only goes to the data layer, to avoid double counting, so GTM sites need the one-time setup below.
+- No requests, cookies or storage of its own. Whatever consent mode the site's gtag/GTM uses applies.
+- `assets/tracking.js` loads in the footer (deferred), is about 4 KB unminified (mostly comments) and has no dependencies. Elementor fires `submit_success` with jQuery, which doesn't dispatch a normal DOM event, so the form part uses `window.jQuery` when the page already has it (every Elementor Pro form page does). The script never adds jQuery to a page.
+- Page-cache plugins keep serving pages without the script (or with it, after turning it off) until their cache is cleared.
+
+#### GTM sites: one-time setup
+
+1. **Variables → New → Data Layer Variable**, three times: `link_location`, `form_name`, `page_path` (Data Layer Variable Name exactly as written).
+2. **Triggers → New → Custom Event**. Event name `click_to_call|generate_lead`, tick **Use regex matching**, fires on **All Custom Events**.
+3. **Tags → New → Google Analytics: GA4 Event**. Measurement ID: the site's `G-...` ID (or the existing Google tag). Event name: `{{Event}}`. Event parameters: `link_location` → `{{link_location}}`, `form_name` → `{{form_name}}`, `page_path` → `{{page_path}}`. Triggering: the trigger from step 2.
+4. **Submit / Publish** the container.
+5. In GA4, go to **Admin → Data display → Events** (or **Key events**) and mark `click_to_call` and `generate_lead` as **key events**. Events show up after their first occurrence; you can also create the key events by name right away.
+
+On gtag-only sites, only step 5 is needed.
+
 ### Updates
 
 The plugin uses [plugin-update-checker](https://github.com/YahnisElsts/plugin-update-checker). WordPress checks this repo's latest GitHub release twice a day and shows the normal "update available" notice. Only the `foundfirst-growth-hub.zip` attached to a release is installed. Git checkouts (the local symlinked copy) never update themselves.
@@ -108,19 +136,36 @@ tail -f wp-content/debug.log
 ### Tests and lint
 
 ```bash
-composer test   # PHPUnit + Brain Monkey: sending, queue, retries, payload, consent, promo (no WordPress needed)
-composer lint   # WordPress coding standards + PHP 8.1 compatibility
+composer test      # PHPUnit + Brain Monkey: sending, queue, retries, payload, consent, promo, GA setting (no WordPress needed)
+composer test:js   # node --test: assets/tracking.js in a vm with a fake DOM and jQuery (Node 18+, no npm install)
+composer lint      # WordPress coding standards + PHP 8.1 compatibility
 ```
+
+The JS tests live in `tests/js/` and, like the rest of `tests/`, are left out of the release zip.
+
+### Manual test: Google Analytics events
+
+On http://foundfirst-wp.test (and on foundfirst.us before each release), with DevTools open. In the Console, `dataLayer.filter(e => /click_to_call|generate_lead/.test(e.event))` shows what was sent.
+
+1. Click a `tel:` link in the header and one in the page body. Expect exactly one `click_to_call` each, with `link_location` `header` / `page`, the right `page_path`, and **no phone number** anywhere.
+2. Double-click a `tel:` link quickly. Still one event.
+3. Submit a form that has **Send to Growth Hub** successfully. Expect one `generate_lead` with only `form_name` and `page_path` (no name, email, phone or message).
+4. Submit it with a validation error (e.g. empty required field). No event.
+5. Submit a form **without** Send to Growth Hub. No event.
+6. Simulate GTM: run `window.google_tag_manager = { 'GTM-TEST': {} }; window.gtag = (...a) => console.log('gtag', a);`, then click a `tel:` link. It's pushed to `dataLayer`, but nothing is logged for gtag.
+7. Run `delete window.google_tag_manager`, then click a `tel:` link. `gtag ['event', 'click_to_call', ...]` is logged once.
+8. Turn the setting off and save. View the page source: no `assets/tracking.js`. Turn it back on.
+9. Network tab: no new requests besides `tracking.js` itself (and GA's own hits on gtag sites).
 
 ## Release checklist
 
 1. Bump the version in **both** places in `foundfirst-growth-hub.php`: the `Version:` header and `FFGH_VERSION`. Use semver: patch for fixes, minor for features.
 2. If the queue table changed, bump `Plugin::DB_VERSION`.
 3. Add a `CHANGELOG.md` entry.
-4. Run `composer test && composer lint`.
+4. Run `composer test && composer test:js && composer lint`.
 5. Commit: `Release vX.Y.Z`.
 6. `bin/build-zip.sh` builds `dist/foundfirst-growth-hub.zip` from the committed code.
-7. **Install the zip on foundfirst.us first** (Plugins → Add New → Upload, replace current). Submit a real form, check it arrives in Growth Hub, check the email still arrives, check the settings page status and the promo.
+7. **Install the zip on foundfirst.us first** (Plugins → Add New → Upload, replace current). Submit a real form, check it arrives in Growth Hub, check the email still arrives, check the settings page status and the promo. Run the Google Analytics manual test above (at least items 1, 3 and 8).
 8. Tag and push: `git tag vX.Y.Z && git push origin main --tags`.
 9. Create the GitHub release from the tag, paste the changelog entry and **attach `dist/foundfirst-growth-hub.zip`** (keep that exact file name):
    `gh release create vX.Y.Z dist/foundfirst-growth-hub.zip --title vX.Y.Z --notes-file <notes>`

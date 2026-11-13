@@ -1,6 +1,6 @@
 {
 	"name": "foundfirst/growth-hub-wp",
-	"description": "FoundFirst Growth Hub WordPress plugin: Elementor Pro form leads and promo banner.",
+	"description": "FoundFirst Growth Hub WordPress plugin: Elementor Pro form leads, promo banner and GA4 events.",
 	"type": "wordpress-plugin",
 	"license": "proprietary",
 	"require": {
@@ -26,6 +26,7 @@
 	},
 	"scripts": {
 		"test": "phpunit",
+		"test:js": "node --test 'tests/js/*.test.mjs'",
 		"lint": "phpcs",
 		"lint:fix": "phpcbf"
 	},
