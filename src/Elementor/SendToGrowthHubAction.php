@@ -9,6 +9,8 @@ namespace FoundFirst\GrowthHub\Elementor;
 
 use Elementor\Controls_Manager;
 use ElementorPro\Modules\Forms\Classes\Action_Base;
+use FoundFirst\GrowthHub\Analytics\Tracking;
+use FoundFirst\GrowthHub\Options;
 use FoundFirst\GrowthHub\Leads\LeadPayload;
 use FoundFirst\GrowthHub\Leads\LeadSender;
 use FoundFirst\GrowthHub\Leads\Status;
@@ -123,6 +125,19 @@ final class SendToGrowthHubAction extends Action_Base {
 	 * @param \ElementorPro\Modules\Forms\Classes\Ajax_Handler $ajax_handler Response builder (never used for errors).
 	 */
 	public function run( $record, $ajax_handler ) {
+		// Tell assets/tracking.js this form went to Growth Hub. It sends generate_lead on Elementor's
+		// submit_success, which only fires when the whole submission succeeded. Only the form's name.
+		try {
+			if ( Options::analytics_enabled() && is_object( $ajax_handler ) && method_exists( $ajax_handler, 'add_response_data' ) ) {
+				$ajax_handler->add_response_data(
+					Tracking::RESPONSE_KEY,
+					array( 'form_name' => Tracking::form_name( $record->get_form_settings( 'form_name' ), $record->get_form_settings( 'id' ) ) )
+				);
+			}
+		} catch ( \Throwable $e ) {
+			unset( $e );
+		}
+
 		try {
 			$this->sender->submit( $this->build_payload( $record ) );
 		} catch ( \Throwable $e ) {

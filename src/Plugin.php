@@ -7,6 +7,7 @@
 
 namespace FoundFirst\GrowthHub;
 
+use FoundFirst\GrowthHub\Analytics\Tracking;
 use FoundFirst\GrowthHub\Api\Client;
 use FoundFirst\GrowthHub\Elementor\PromoWidget;
 use FoundFirst\GrowthHub\Elementor\SendToGrowthHubAction;
@@ -56,6 +57,8 @@ final class Plugin {
 		// These hooks only fire when Elementor Pro / Elementor are active.
 		add_action( 'elementor_pro/forms/actions/register', array( self::class, 'register_form_action' ) );
 		add_action( 'elementor/widgets/register', array( self::class, 'register_widget' ) );
+
+		( new Tracking() )->register();
 
 		if ( is_admin() ) {
 			( new SettingsPage() )->register();

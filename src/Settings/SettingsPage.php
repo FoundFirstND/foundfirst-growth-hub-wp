@@ -87,6 +87,7 @@ final class SettingsPage {
 		$old_key = Options::site_key();
 		Options::set( Options::BASE_URL, $url );
 		Options::set( Options::PROMO_IMAGE, empty( $_POST['ffgh_show_promo_image'] ) ? '0' : '1' );
+		Options::set( Options::ANALYTICS, empty( $_POST['ffgh_analytics_events'] ) ? '0' : '1' );
 
 		$key    = isset( $_POST['ffgh_site_key'] ) ? trim( sanitize_text_field( wp_unslash( (string) $_POST['ffgh_site_key'] ) ) ) : '';
 		$remove = ! empty( $_POST['ffgh_remove_key'] );
@@ -224,6 +225,14 @@ final class SettingsPage {
 						<td>
 							<label><input type="checkbox" name="ffgh_show_promo_image" value="1" <?php checked( Options::show_promo_image() ); ?>> <?php esc_html_e( 'Show photo on the banner', 'foundfirst-growth-hub' ); ?></label>
 							<p class="description"><?php esc_html_e( 'Off by default: the banner shows only the text. Override per banner with [growthhub_promo image="yes"] or image="no", or the Elementor widget\'s Show photo switch.', 'foundfirst-growth-hub' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Google Analytics', 'foundfirst-growth-hub' ); ?></th>
+						<td>
+							<label><input type="checkbox" name="ffgh_analytics_events" value="1" <?php checked( Options::analytics_enabled() ); ?>> <?php esc_html_e( 'Send call clicks and form leads to Google Analytics', 'foundfirst-growth-hub' ); ?></label>
+							<p class="description"><?php esc_html_e( 'Sends a click_to_call event when a visitor taps a phone link, and a generate_lead event when a form with Send to Growth Hub is submitted. Phone numbers, names, emails and messages are never sent.', 'foundfirst-growth-hub' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Sites using gtag.js (Site Kit or a theme setting): nothing to set up. Sites using Google Tag Manager: the events go to the data layer only, so add one GA4 Event tag (Custom Event trigger click_to_call|generate_lead as regex, event name {{Event}}, parameters link_location, form_name and page_path). See "GTM sites: one-time setup" in the plugin README. In GA4, mark click_to_call and generate_lead as key events.', 'foundfirst-growth-hub' ); ?></p>
 						</td>
 					</tr>
 				</table>
