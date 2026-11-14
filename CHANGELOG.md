@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.0 (2026-11-13)
+
+- **Text club (VIP) consent and age (21+) confirmation** from Elementor forms. The **Send to Growth Hub** action has two new optional field IDs, blank by default: **Text club (VIP) consent field ID** and **Age confirmation (21+) field ID**.
+  - A mapped box that the visitor ticked in this submission sends `marketing_consent: true` with `marketing_consent_text`, or `age_confirmed: true` with `age_confirmation_text`. The wording is the box's label and acceptance text exactly as shown, with HTML removed.
+  - Unticked or unmapped boxes send `false` and no wording. The two boxes are independent of each other and of `sms_consent`.
+  - Only Acceptance or Checkbox fields count. A ticked box with no wording, or a mapped field of another type, is sent as `false` with a warning on the settings page (Growth Hub would otherwise reject the lead with a 422, which is never retried).
+  - Text club forms with only a name, phone and the boxes (no email or message) work.
+- Every lead now includes `marketing_consent` and `age_confirmed` (`false` unless a mapped box was ticked). `sms_consent` behaves as before.
+- `API.md` updated to the current Growth Hub leads API.
+
 ## 0.3.0 (2026-11-13)
 
 - **Google Analytics events** on every site, with no per-site GTM work on gtag sites:

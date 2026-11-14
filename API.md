@@ -61,7 +61,8 @@ curl -X POST https://app.foundfirst.us/api/v1/leads \
     "page_url": "https://redriversnow.com/contact",
     "form_name": "Contact Us",
     "sms_consent": true,
-    "consent_text": "Yes, text me about my request. Msg & data rates may apply. Reply STOP to opt out.",
+    "consent_text": "I agree to receive text messages from Ed's Bar & Bait Shop about my inquiry and visit, including occasional requests to review us. Msg frequency varies. Msg & data rates may apply. Reply STOP to opt out, HELP for help. See our SMS terms and privacy policy.",
+    "marketing_consent": false,
     "submitted_at": "2026-10-28T14:30:00-05:00",
     "ip": "203.0.113.9"
   }'
@@ -79,6 +80,10 @@ curl -X POST https://app.foundfirst.us/api/v1/leads \
 | `form_name` | string | Optional, max 255. Shown in the inbox ("Website form: Contact Us"). |
 | `sms_consent` | boolean | Optional, default `false`. `true` only when the visitor ticked an SMS consent checkbox. Never `true` by default. |
 | `consent_text` | string | **Required when `sms_consent` is `true`**, max 1000. The exact checkbox wording the visitor saw. |
+| `marketing_consent` | boolean | Optional, default `false`. `true` only when the visitor ticked a **separate, unticked-by-default VIP box** to get marketing texts (deals, news). The inquiry checkbox (`sms_consent`) never counts. |
+| `marketing_consent_text` | string | **Required when `marketing_consent` is `true`**, max 1000. The exact VIP box wording the visitor saw, e.g. "Yes, text me VIP deals from Bry's Guide Service. Msg frequency varies. Msg & data rates may apply. Reply STOP to opt out." |
+| `age_confirmed` | boolean | Optional, default `false`. `true` only when the visitor confirmed they're 21 or older (a separate checkbox, unticked by default). **Age-gated (21+) businesses refuse VIP joins without it.** Other businesses ignore it. |
+| `age_confirmation_text` | string | **Required when `age_confirmed` is `true`**, max 1000. The exact age confirmation wording the visitor saw, e.g. "I confirm I'm 21 or older." Stored on the VIP consent record. |
 | `submitted_at` | string | Optional ISO 8601 date with its offset. Defaults to when Growth Hub received it. |
 | `ip` | string | Optional visitor IP address (IPv4 or IPv6). Stored on the consent record. |
 
@@ -90,7 +95,10 @@ Unknown fields are ignored.
 
 - The lead is matched to an existing contact of that business by phone, then by email, or a new contact is created. Details the contact is missing (name, email, phone) are filled in, but nothing is overwritten.
 - It shows up in the business's inbox as an unread message with a **Website form** badge, and the owners get an email alert (Reply-To is the lead's email, if there is one).
-- If `sms_consent` is `true`, a consent record is stored (source "website form", page, wording, time, IP).
+- If `sms_consent` is `true`, a consent record is stored (source "website form", page, wording, time, IP). It covers texts about the visitor's inquiry. It also covers **review request texts** only when `consent_text` names them: it says "review request(s)" or "request(s) to review" (in any case). The bare word "review" isn't enough ("my free site review" doesn't count). Without that, review requests to the lead go by email, or aren't sent.
+- If `marketing_consent` is `true`, the business's VIP texts are turned on, and the phone is valid and hasn't opted out, the visitor joins the VIP list: a marketing consent record is stored (source "website form", page, the `marketing_consent_text` wording, time, IP) and they get the VIP confirmation text right away (the business's custom confirmation, if it has one). Missing or `false` never joins anyone. If VIP texts are off for the business, the lead is still accepted and the box is kept on the lead, but nobody joins.
+- **Only the phone typed on the form joins.** If the lead matched a contact by email that has a different phone, the typed phone joins as its own contact, and the consent is tied to that number.
+- **Age-gated (21+) businesses** (ForksOnTap, FargoOnTap) also need `age_confirmed: true` with `age_confirmation_text`; the wording is stored on the consent record. Without it the VIP join is refused (and logged), but the lead is still accepted, with no marketing consent. Both fields are kept on the submission.
 - If the business has **Text form leads back** turned on, the lead consented and gave a valid phone, texting is approved and they haven't opted out (STOP), they get the business's thank-you text right away.
 
 ### Responses
@@ -139,7 +147,36 @@ HTTP/1.1 422 Unprocessable Content
 }
 ```
 
-Other messages you may see: `"The phone number is not a valid US phone number."` and `"Send the exact consent checkbox wording when sms_consent is true."`.
+Other messages you may see: `"The phone number is not a valid US phone number."`, `"Send the exact consent checkbox wording when sms_consent is true."` and `"Send the exact VIP checkbox wording when marketing_consent is true."`.
+
+### The checkbox wording (review requests)
+
+The plugin sends the consent field's label plus its acceptance text as `consent_text`, word for word, so no plugin change is needed. To let a business send review request texts, the **checkbox wording on the client's site** must name review requests. The live wording today:
+- Ed's: "I agree to receive text messages from Ed's Bar & Bait Shop about my inquiry and visit, including occasional requests to review us. Msg frequency varies. Msg & data rates may apply. Reply STOP to opt out, HELP for help. See our SMS terms and privacy policy."
+- Bry's: "I agree to receive text messages from Bry's Guide Service about my inquiry and trips, including occasional requests to review your trip. Msg frequency varies. Msg & data rates may apply. Reply STOP to opt out, HELP for help. See our SMS terms and privacy policy."
+
+Leads sent with older wording keep exactly what they agreed to; nothing is broadened.
+
+### For the next plugin release: the VIP box
+
+Added in Session 14; older plugin versions keep working (the fields are optional).
+- Offer a separate checkbox, unticked by default, below the inquiry checkbox, only when the site owner turns it on in the plugin settings.
+- Its label must name the business and say "Msg frequency varies. Msg & data rates may apply. Reply STOP to opt out." plus a link to the SMS terms (privacy page #sms).
+- Send `marketing_consent: true` and the label's exact text as `marketing_consent_text` only when it's ticked. Never send `true` by default.
+- For an age-gated (21+) business, also offer an age checkbox (unticked by default, e.g. "I confirm I'm 21 or older.") and send `age_confirmed: true` with its exact text as `age_confirmation_text` only when it's ticked. Example:
+
+```json
+{
+  "idempotency_key": "6d1f6b0e-2a3c-4bde-9b5e-0c9a7a1f2e44",
+  "name": "Sam Lee",
+  "phone": "(701) 555-0142",
+  "form_name": "Happy hour VIP",
+  "marketing_consent": true,
+  "marketing_consent_text": "Yes, text me happy hour deals from ForksOnTap. Msg frequency varies. Msg & data rates may apply. Reply HELP for help, STOP to opt out. Terms: https://forksontap.com/privacy/#sms",
+  "age_confirmed": true,
+  "age_confirmation_text": "I confirm I'm 21 or older."
+}
+```
 
 ### Idempotency and retries (for the plugin)
 

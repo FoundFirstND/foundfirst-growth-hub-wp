@@ -27,6 +27,9 @@ final class SendToGrowthHubAction extends Action_Base {
 	/** Field types that carry no visitor input. */
 	private const SKIP_TYPES = array( 'honeypot', 'recaptcha', 'recaptcha_v3', 'step', 'html', 'submit' );
 
+	/** Field types that can carry a tick: the only ones accepted for the VIP and age boxes. */
+	private const BOX_TYPES = array( 'acceptance', 'checkbox' );
+
 	/** Values that mean "unchecked". */
 	private const UNCHECKED = array( '', 'off', 'no', 'false', '0' );
 
@@ -69,17 +72,20 @@ final class SendToGrowthHubAction extends Action_Base {
 			'ffgh_mapping_help',
 			array(
 				'type'            => Controls_Manager::RAW_HTML,
-				'raw'             => esc_html__( 'Enter the field ID (Advanced tab of each form field) for each item. Leave blank to skip. Email or phone is required.', 'foundfirst-growth-hub' ),
+				'raw'             => esc_html__( 'Enter the field ID (Advanced tab of each form field) for each item. Leave blank to skip. Email or phone is required. The text club (VIP) and age (21+) boxes are optional: map them only on forms that have those checkboxes.', 'foundfirst-growth-hub' ),
 				'content_classes' => 'elementor-descriptor',
 			)
 		);
 
 		$mapping = array(
-			'ffgh_field_name'        => array( __( 'Name field ID', 'foundfirst-growth-hub' ), 'name' ),
-			'ffgh_field_email'       => array( __( 'Email field ID', 'foundfirst-growth-hub' ), 'email' ),
-			'ffgh_field_phone'       => array( __( 'Phone field ID', 'foundfirst-growth-hub' ), 'phone' ),
-			'ffgh_field_message'     => array( __( 'Message field ID', 'foundfirst-growth-hub' ), 'message' ),
-			'ffgh_field_sms_consent' => array( __( 'SMS consent checkbox field ID', 'foundfirst-growth-hub' ), 'sms_consent' ),
+			'ffgh_field_name'              => array( __( 'Name field ID', 'foundfirst-growth-hub' ), 'name' ),
+			'ffgh_field_email'             => array( __( 'Email field ID', 'foundfirst-growth-hub' ), 'email' ),
+			'ffgh_field_phone'             => array( __( 'Phone field ID', 'foundfirst-growth-hub' ), 'phone' ),
+			'ffgh_field_message'           => array( __( 'Message field ID', 'foundfirst-growth-hub' ), 'message' ),
+			'ffgh_field_sms_consent'       => array( __( 'SMS consent checkbox field ID', 'foundfirst-growth-hub' ), 'sms_consent' ),
+			// Blank by default: a form only sends VIP consent or age confirmation once someone maps the box.
+			'ffgh_field_marketing_consent' => array( __( 'Text club (VIP) consent field ID', 'foundfirst-growth-hub' ), '' ),
+			'ffgh_field_age_confirmation'  => array( __( 'Age confirmation (21+) field ID', 'foundfirst-growth-hub' ), '' ),
 		);
 
 		foreach ( $mapping as $control => [ $label, $default ] ) {
@@ -157,7 +163,7 @@ final class SendToGrowthHubAction extends Action_Base {
 		$definitions = $this->field_definitions( $record );
 
 		$map = array();
-		foreach ( array( 'name', 'email', 'phone', 'message', 'sms_consent' ) as $key ) {
+		foreach ( array( 'name', 'email', 'phone', 'message', 'sms_consent', 'marketing_consent', 'age_confirmation' ) as $key ) {
 			$map[ $key ] = trim( (string) $record->get_form_settings( 'ffgh_field_' . $key ) );
 		}
 
@@ -165,22 +171,29 @@ final class SendToGrowthHubAction extends Action_Base {
 			return '' !== $id && isset( $fields[ $id ]['value'] ) ? (string) $fields[ $id ]['value'] : '';
 		};
 
-		// SMS consent: only true when the mapped checkbox was ticked.
-		$consent      = false;
-		$consent_text = '';
-		if ( '' !== $map['sms_consent'] && isset( $fields[ $map['sms_consent'] ] ) ) {
-			$field   = $fields[ $map['sms_consent'] ];
-			$raw     = $field['raw_value'] ?? $field['value'] ?? '';
-			$checked = is_array( $raw ) ? array() !== array_filter( $raw ) : ! in_array( strtolower( trim( (string) $raw ) ), self::UNCHECKED, true );
-
-			if ( $checked ) {
-				$consent      = true;
-				$consent_text = $this->consent_text( $field, $definitions[ $map['sms_consent'] ] ?? array() );
-				if ( '' === $consent_text ) {
-					Status::record_error( time(), 0, 'SMS consent was ticked but the consent field has no label text, so consent was not sent. Add the wording to the field.' );
-				}
-			}
-		}
+		// Each box is only true when its mapped checkbox was ticked in this submission, and is sent
+		// with the exact wording the visitor saw. Nothing is inferred from other fields.
+		$consent_text   = $this->ticked_wording(
+			$fields,
+			$definitions,
+			$map['sms_consent'],
+			false,
+			'SMS consent was ticked but the consent field has no label text, so consent was not sent. Add the wording to the field.'
+		);
+		$marketing_text = $this->ticked_wording(
+			$fields,
+			$definitions,
+			$map['marketing_consent'],
+			true,
+			'Text club (VIP) consent was ticked but the field has no label text, so VIP consent was not sent. Add the wording to the field.'
+		);
+		$age_text       = $this->ticked_wording(
+			$fields,
+			$definitions,
+			$map['age_confirmation'],
+			true,
+			'Age confirmation (21+) was ticked but the field has no label text, so it was not sent. Add the wording to the field.'
+		);
 
 		$extra = array();
 		if ( 'yes' === $record->get_form_settings( 'ffgh_send_extra_fields' ) ) {
@@ -200,20 +213,58 @@ final class SendToGrowthHubAction extends Action_Base {
 
 		return LeadPayload::build(
 			array(
-				'idempotency_key' => wp_generate_uuid4(),
-				'name'            => $value( $map['name'] ),
-				'email'           => $value( $map['email'] ),
-				'phone'           => $value( $map['phone'] ),
-				'message'         => $value( $map['message'] ),
-				'fields'          => $extra,
-				'form_name'       => (string) $record->get_form_settings( 'form_name' ),
-				'page_url'        => $this->page_url(),
-				'sms_consent'     => $consent,
-				'consent_text'    => $consent_text,
-				'submitted_at'    => wp_date( 'c' ),
-				'ip'              => $this->visitor_ip(),
+				'idempotency_key'        => wp_generate_uuid4(),
+				'name'                   => $value( $map['name'] ),
+				'email'                  => $value( $map['email'] ),
+				'phone'                  => $value( $map['phone'] ),
+				'message'                => $value( $map['message'] ),
+				'fields'                 => $extra,
+				'form_name'              => (string) $record->get_form_settings( 'form_name' ),
+				'page_url'               => $this->page_url(),
+				'sms_consent'            => '' !== $consent_text,
+				'consent_text'           => $consent_text,
+				'marketing_consent'      => '' !== $marketing_text,
+				'marketing_consent_text' => $marketing_text,
+				'age_confirmed'          => '' !== $age_text,
+				'age_confirmation_text'  => $age_text,
+				'submitted_at'           => wp_date( 'c' ),
+				'ip'                     => $this->visitor_ip(),
 			)
 		);
+	}
+
+	/**
+	 * The wording of a mapped box, if the visitor ticked it in this submission; otherwise ''.
+	 *
+	 * @param array  $fields       Submitted fields.
+	 * @param array  $definitions  Field settings by ID.
+	 * @param string $id           Mapped field ID ('' = not mapped).
+	 * @param bool   $require_box  Only accept Acceptance / Checkbox fields (a ticked box, never typed text).
+	 * @param string $no_wording   Settings-page warning when the box was ticked but has no wording.
+	 */
+	private function ticked_wording( array $fields, array $definitions, string $id, bool $require_box, string $no_wording ): string {
+		if ( '' === $id || ! isset( $fields[ $id ] ) || ! is_array( $fields[ $id ] ) ) {
+			return '';
+		}
+
+		$field = $fields[ $id ];
+		if ( $require_box && ! in_array( $field['type'] ?? '', self::BOX_TYPES, true ) ) {
+			Status::record_error( time(), 0, sprintf( 'The field "%s" is mapped as a text club or age box but is not an Acceptance or Checkbox field, so it was sent as not ticked.', $id ) );
+			return '';
+		}
+
+		$raw     = $field['raw_value'] ?? $field['value'] ?? '';
+		$checked = is_array( $raw ) ? array() !== array_filter( $raw ) : ! in_array( strtolower( trim( (string) $raw ) ), self::UNCHECKED, true );
+		if ( ! $checked ) {
+			return '';
+		}
+
+		$wording = $this->consent_text( $field, $definitions[ $id ] ?? array() );
+		if ( '' === $wording ) {
+			Status::record_error( time(), 0, $no_wording );
+		}
+
+		return $wording;
 	}
 
 	/**
