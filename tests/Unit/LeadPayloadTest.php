@@ -35,18 +35,20 @@ final class LeadPayloadTest extends TestCase {
 
 		$this->assertSame(
 			array(
-				'idempotency_key' => '0b8f2c36-6a4e-4d0e-9d55-2f1f0c6f8a11',
-				'name'            => 'Jane Doe',
-				'email'           => 'jane@example.com',
-				'phone'           => '(701) 555-0100',
-				'message'         => 'Do you plow driveways on Saturday?',
-				'page_url'        => 'https://redriversnow.com/contact',
-				'form_name'       => 'Contact Us',
-				'submitted_at'    => '2026-10-28T14:30:00-05:00',
-				'ip'              => '203.0.113.9',
-				'sms_consent'     => true,
-				'consent_text'    => 'Yes, text me about my request.',
-				'fields'          => array(
+				'idempotency_key'   => '0b8f2c36-6a4e-4d0e-9d55-2f1f0c6f8a11',
+				'name'              => 'Jane Doe',
+				'email'             => 'jane@example.com',
+				'phone'             => '(701) 555-0100',
+				'message'           => 'Do you plow driveways on Saturday?',
+				'page_url'          => 'https://redriversnow.com/contact',
+				'form_name'         => 'Contact Us',
+				'submitted_at'      => '2026-10-28T14:30:00-05:00',
+				'ip'                => '203.0.113.9',
+				'sms_consent'       => true,
+				'consent_text'      => 'Yes, text me about my request.',
+				'marketing_consent' => false,
+				'age_confirmed'     => false,
+				'fields'            => array(
 					'Service' => 'Driveway plowing',
 					'Extras'  => 'Plowing, Salting',
 				),
@@ -67,9 +69,11 @@ final class LeadPayloadTest extends TestCase {
 
 		$this->assertSame(
 			array(
-				'idempotency_key' => 'k',
-				'email'           => 'a@b.co',
-				'sms_consent'     => false,
+				'idempotency_key'   => 'k',
+				'email'             => 'a@b.co',
+				'sms_consent'       => false,
+				'marketing_consent' => false,
+				'age_confirmed'     => false,
 			),
 			$body
 		);
@@ -182,5 +186,58 @@ final class LeadPayloadTest extends TestCase {
 			),
 			$body['fields']
 		);
+	}
+
+	public function test_vip_and_age_boxes_are_sent_with_their_wording(): void {
+		$body = LeadPayload::build(
+			array(
+				'idempotency_key'        => 'k',
+				'phone'                  => '(701) 555-0142',
+				'marketing_consent'      => true,
+				'marketing_consent_text' => ' Yes, text me happy hour deals. ',
+				'age_confirmed'          => true,
+				'age_confirmation_text'  => "I confirm I'm 21 or older.",
+			)
+		);
+
+		$this->assertTrue( $body['marketing_consent'] );
+		$this->assertSame( 'Yes, text me happy hour deals.', $body['marketing_consent_text'] );
+		$this->assertTrue( $body['age_confirmed'] );
+		$this->assertSame( "I confirm I'm 21 or older.", $body['age_confirmation_text'] );
+		$this->assertFalse( $body['sms_consent'] );
+	}
+
+	public function test_vip_and_age_need_strict_true_and_wording(): void {
+		$body = LeadPayload::build(
+			array(
+				'idempotency_key'        => 'k',
+				'phone'                  => '(701) 555-0142',
+				'marketing_consent'      => 'on',
+				'marketing_consent_text' => 'Yes, text me deals.',
+				'age_confirmed'          => true,
+				'age_confirmation_text'  => '  ',
+			)
+		);
+
+		$this->assertFalse( $body['marketing_consent'] );
+		$this->assertArrayNotHasKey( 'marketing_consent_text', $body );
+		$this->assertFalse( $body['age_confirmed'] );
+		$this->assertArrayNotHasKey( 'age_confirmation_text', $body );
+	}
+
+	public function test_vip_and_age_wording_is_cut_to_1000_characters(): void {
+		$body = LeadPayload::build(
+			array(
+				'idempotency_key'        => 'k',
+				'phone'                  => '(701) 555-0142',
+				'marketing_consent'      => true,
+				'marketing_consent_text' => str_repeat( 'v', 1200 ),
+				'age_confirmed'          => true,
+				'age_confirmation_text'  => str_repeat( 'a', 1200 ),
+			)
+		);
+
+		$this->assertSame( 1000, mb_strlen( $body['marketing_consent_text'] ) );
+		$this->assertSame( 1000, mb_strlen( $body['age_confirmation_text'] ) );
 	}
 }

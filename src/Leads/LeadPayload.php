@@ -15,15 +15,17 @@ defined( 'ABSPATH' ) || exit;
  */
 final class LeadPayload {
 
-	private const MAX_FIELDS      = 50;
-	private const MAX_FIELD_NAME  = 100;
-	private const MAX_FIELD_VALUE = 2000;
+	private const MAX_FIELDS       = 50;
+	private const MAX_FIELD_NAME   = 100;
+	private const MAX_FIELD_VALUE  = 2000;
+	private const MAX_CONSENT_TEXT = 1000;
 
 	/**
 	 * Build the request body.
 	 *
 	 * @param array $input Keys: idempotency_key, name, email, phone, message, fields (label => value),
-	 *                     page_url, form_name, sms_consent, consent_text, submitted_at, ip.
+	 *                     page_url, form_name, sms_consent, consent_text, marketing_consent,
+	 *                     marketing_consent_text, age_confirmed, age_confirmation_text, submitted_at, ip.
 	 * @return array
 	 */
 	public static function build( array $input ): array {
@@ -57,12 +59,21 @@ final class LeadPayload {
 
 		$body = array_filter( $body, static fn ( $value ) => '' !== $value );
 
-		$consent_text = self::text( $input['consent_text'] ?? '', 1000 );
-		if ( true === ( $input['sms_consent'] ?? false ) && '' !== $consent_text ) {
-			$body['sms_consent']  = true;
-			$body['consent_text'] = $consent_text;
-		} else {
-			$body['sms_consent'] = false;
+		// Each box is true only when strictly true and sent with its wording (API.md: the wording is
+		// required when true, and a 422 is never retried). Otherwise false, with no wording.
+		$boxes = array(
+			'sms_consent'       => 'consent_text',
+			'marketing_consent' => 'marketing_consent_text',
+			'age_confirmed'     => 'age_confirmation_text',
+		);
+		foreach ( $boxes as $flag => $text_key ) {
+			$text = self::text( $input[ $text_key ] ?? '', self::MAX_CONSENT_TEXT );
+			if ( true === ( $input[ $flag ] ?? false ) && '' !== $text ) {
+				$body[ $flag ]     = true;
+				$body[ $text_key ] = $text;
+			} else {
+				$body[ $flag ] = false;
+			}
 		}
 
 		$extra = self::fields( $fields );
