@@ -45,7 +45,7 @@ final class PromoService {
 	/**
 	 * The promo to show now, or null.
 	 *
-	 * @return array{text: string, link: ?string, image_url: ?string, expires_at: ?string}|null
+	 * @return array{text: string, link: ?string, image_url: ?string, media_type: string, video_url: ?string, video_file_url: ?string, expires_at: ?string}|null
 	 */
 	public function current(): ?array {
 		$promo = null;
@@ -120,10 +120,13 @@ final class PromoService {
 		}
 
 		return array(
-			'text'       => trim( $data['text'] ),
-			'link'       => self::url( $data['link'] ?? null ),
-			'image_url'  => self::url( $data['image_url'] ?? null ),
-			'expires_at' => isset( $data['expires_at'] ) && is_string( $data['expires_at'] ) && '' !== $data['expires_at'] ? $data['expires_at'] : null,
+			'text'           => trim( $data['text'] ),
+			'link'           => self::url( $data['link'] ?? null ),
+			'image_url'      => self::url( $data['image_url'] ?? null ),
+			'media_type'     => 'video' === ( $data['media_type'] ?? null ) ? 'video' : 'photo',
+			'video_url'      => self::url( $data['video_url'] ?? null ),
+			'video_file_url' => self::url( $data['video_file_url'] ?? null ),
+			'expires_at'     => isset( $data['expires_at'] ) && is_string( $data['expires_at'] ) && '' !== $data['expires_at'] ? $data['expires_at'] : null,
 		);
 	}
 

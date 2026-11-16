@@ -1,6 +1,21 @@
 # Changelog
 
-## 0.4.0 (2026-11-13)
+## 0.5.0 (2026-11-16)
+
+Includes everything in 0.4.0, which wasn't released on its own.
+
+- **Video player for Text to Post video posts** in the `[growthhub_promo]` shortcode and the Growth Hub Promo widget.
+  - The banner shows an HTML5 `<video>` (from the API's new `video_file_url`) with the thumbnail as its poster, controls and `playsinline`. It uses `preload="none"`, so nothing loads until a visitor presses play, and it never autoplays with sound.
+  - The video has an `aria-label` from the caption. Only the caption is linked, because a link around the player would follow it on play.
+- Video posts show **regardless of "Show photo on the banner"**. Hide them per banner with `image="no"`, or by turning the widget's **Show photo** switch off on that widget.
+- New option **Autoplay muted and loop**, off by default: `[growthhub_promo autoplay="yes"]` or the widget's **Autoplay video (muted, looping)** switch. The controls stay so visitors can pause.
+- **Fallbacks:** with no video file (Growth Hub cleans it up after the post ends), or when the video fails to play, the thumbnail shows instead.
+  - It's linked to the video on Facebook (`video_url`) when there is one, with a play badge.
+  - The swap after a failure is done by a new footer script, `assets/promo.js` (no dependencies). It loads only with a video banner or the Promo widget.
+- Photo posts are unchanged.
+- `API.md`'s `/promo` section updated to match Growth Hub, with the new fields `media_type`, `video_url` and `video_file_url`.
+
+## 0.4.0 (2026-11-13) (not released separately; shipped in 0.5.0)
 
 - **Text club (VIP) consent and age (21+) confirmation** from Elementor forms. The **Send to Growth Hub** action has two new optional field IDs, blank by default: **Text club (VIP) consent field ID** and **Age confirmation (21+) field ID**.
   - A mapped box that the visitor ticked in this submission sends `marketing_consent: true` with `marketing_consent_text`, or `age_confirmed: true` with `age_confirmation_text`. The wording is the box's label and acceptance text exactly as shown, with HTML removed.

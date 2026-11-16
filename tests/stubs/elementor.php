@@ -12,6 +12,10 @@ namespace Elementor {
 		public function get_settings_for_display() {
 			return array();
 		}
+
+		public function get_data( $item = null ) {
+			return null === $item ? array() : null;
+		}
 	}
 
 	class Controls_Manager {

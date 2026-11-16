@@ -79,6 +79,18 @@ The visitor always sees the form's normal success message, and the form's other 
     .ffgh-promo__text       <span>
 ```
 
+#### Video posts
+
+When the owner posts a video with Text to Post, the banner shows a video player instead of a photo. This is **whatever "Show photo on the banner" says**, unless the shortcode has `image="no"` or the widget's **Show photo** switch was turned off on that widget.
+
+- **The player** uses the video's thumbnail as its poster and has controls. It loads nothing until a visitor presses play (`preload="none"`), so it doesn't slow the page. It never autoplays with sound.
+- **Autoplay muted and loop** is off by default. Turn it on with `[growthhub_promo autoplay="yes"]` or the widget's **Autoplay video (muted, looping)** switch. Visitors can still pause it.
+- **Only the caption is a link.** Clicking the player plays the video instead of following the link.
+- **Fallbacks:**
+  - Once Growth Hub has cleaned up the video file, or if the video fails to play, the thumbnail shows instead. It's linked to the video on Facebook when there is one, with a play badge.
+  - The swap after a failure is done by `assets/promo.js`, a tiny footer script. It loads only on pages with a video banner (or a Promo widget).
+- **Extra classes:** `.ffgh-promo--video` (wrapper), `.ffgh-promo__video` (`<video>`), `.ffgh-promo__video-link` (the thumbnail link), `.ffgh-promo__play` (the badge) and `.ffgh-promo__text-link` (the linked caption).
+
 ### Google Analytics events
 
 **Settings → Growth Hub → Send call clicks and form leads to Google Analytics** (on by default, also on sites that updated from 0.2.x). When it's off, the script isn't loaded at all.
