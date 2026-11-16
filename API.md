@@ -189,7 +189,7 @@ The key is unique per site connection, so two different sites using the same UUI
 
 ## GET /promo
 
-The promo banner for the site. **For now it always returns `null`.** Text to Post (a later session) will fill it.
+The business's current website promo from Text to Post: the owner texted it in, saw a preview and replied YES. Returns `null` when there is no live promo.
 
 ```bash
 curl https://app.foundfirst.us/api/v1/promo \
@@ -197,7 +197,25 @@ curl https://app.foundfirst.us/api/v1/promo \
   -H "Accept: application/json"
 ```
 
-Today:
+With a promo:
+
+```http
+HTTP/1.1 200 OK
+
+{
+  "data": {
+    "text": "20% off all large pizzas!",
+    "link": "https://order.tonyspizza.com",
+    "image_url": "https://app.foundfirst.us/promo-images/Xk3f9QeL2mTz8VbR1nYp4WcA7sHd0GjUqE5oKiLt",
+    "media_type": "photo",
+    "video_url": null,
+    "video_file_url": null,
+    "expires_at": "2026-11-01T04:59:59+00:00"
+  }
+}
+```
+
+Without one:
 
 ```http
 HTTP/1.1 200 OK
@@ -205,24 +223,21 @@ HTTP/1.1 200 OK
 {"data": null}
 ```
 
-When there's a promo, it will look like this. Build the banner for this shape, and hide it when `data` is `null`:
-
-```json
-{
-  "data": {
-    "text": "20% off driveway plowing this weekend only!",
-    "link": "https://redriversnow.com/deals",
-    "image_url": "https://app.foundfirst.us/storage/promos/412.jpg",
-    "expires_at": "2026-11-01T05:59:59+00:00"
-  }
-}
-```
-
 | Field | Type | Notes |
 | --- | --- | --- |
-| `text` | string | The banner text. Always present. |
-| `link` | string or null | Where the banner links. Null means no link. |
-| `image_url` | string or null | Optional photo. |
-| `expires_at` | string or null | ISO 8601 (UTC). Hide the banner after this time even if a cached response says otherwise. |
+| `text` | string | The banner text, one line (at most 120 characters, usually under 90). Always present. Plain text: escape it when you print it. |
+| `link` | string or null | Where the banner links: the business's order/booking link, its website, or a link the owner texted. For a video post with none of those, the video on Facebook (once it's posted there). Null means no link. |
+| `image_url` | string or null | The owner's photo, if they sent one (for a video post, the video's thumbnail). A public URL with a long random token. **It only works while the promo is live:** once the promo ends, is removed or is replaced, it returns 404. Don't copy the image into WordPress. Load it from this URL. |
+| `media_type` | string | `photo` (a photo or text-only post) or `video`. Added in Session 15; older plugin versions can ignore it. |
+| `video_url` | string or null | For a video post, the video on the business's Facebook Page once Facebook has finished processing it (usually a minute or two after YES). Null for photo posts, or until then. Show `image_url` (the video's thumbnail) with a play icon that links here. |
+| `video_file_url` | string or null | For a video post, the video itself for an embedded player (`<video src=… poster=image_url>`): a public URL with the post's long random token that redirects to a short-lived signed link. Only while the promo is live and the video is kept (until 30 days after the post ends); otherwise null. Older plugin versions can ignore it. |
+| `expires_at` | string or null | ISO 8601 (UTC): the end of the promo's last day in the business's timezone. Hide the banner after this time even if a cached response says otherwise. |
 
-Cache the response on the WordPress side (e.g. a 5-minute transient) rather than calling on every page view. It counts toward the 30 requests a minute.
+When `data` becomes `null`:
+- the promo's last day has passed (`expires_at`);
+- someone pressed **Remove** on the Posts page in Growth Hub;
+- or a newer promo replaced it, in which case you get the new one.
+
+There is only ever one live promo per business.
+
+Cache the response on the WordPress side (e.g. a 5-minute transient) rather than calling on every page view. It counts toward the 30 requests a minute. A removed promo can therefore stay up for up to 5 minutes on the site, except the photo, which disappears straight away.
