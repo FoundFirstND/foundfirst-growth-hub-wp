@@ -1,6 +1,6 @@
 # Growth Hub API (v1)
 
-The API the FoundFirst WordPress plugin uses to send website form leads to Growth Hub and fetch the promo banner. It's for that plugin only. There's no public signup and no user accounts.
+The API the FoundFirst WordPress plugin uses to send website form leads to Growth Hub and fetch the promo banner and Google reviews. It's for that plugin only. There's no public signup and no user accounts.
 
 - Base URL: `https://app.foundfirst.us/api/v1` (locally `http://growth-hub.test/api/v1`)
 - JSON in, JSON out. Always send `Accept: application/json`.
@@ -241,3 +241,92 @@ When `data` becomes `null`:
 There is only ever one live promo per business.
 
 Cache the response on the WordPress side (e.g. a 5-minute transient) rather than calling on every page view. It counts toward the 30 requests a minute. A removed promo can therefore stay up for up to 5 minutes on the site, except the photo, which disappears straight away.
+
+## GET /reviews
+
+The business's Google rating and its newest Google reviews, for a reviews section on the website. Built from the reviews Growth Hub already syncs from Google (every 30 minutes), so a website visit never calls Google. Returns `null` when the business doesn't show reviews.
+
+```bash
+curl "https://app.foundfirst.us/api/v1/reviews?min_rating=4&limit=6" \
+  -H "Authorization: Bearer ghk_..." \
+  -H "Accept: application/json"
+```
+
+### Query parameters
+
+| Parameter | Values | Default | Notes |
+| --- | --- | --- | --- |
+| `min_rating` | `4` or `5` | the business's setting | The lowest star rating to include. The business's own minimum (set by FoundFirst) is a floor: asking for 4 when the business is set to 5 still returns 5-star reviews only. |
+| `limit` | `1` to `20` | `10` | How many reviews at most. |
+
+### With reviews
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: max-age=3600, public
+
+{
+  "data": {
+    "rating": 4.8,
+    "review_count": 132,
+    "review_url": "https://search.google.com/local/writereview?placeid=ChIJ...",
+    "profile_url": "https://www.google.com/maps/place/?q=place_id:ChIJ...",
+    "reviews": [
+      {
+        "name": "Sam O.",
+        "initials": "SO",
+        "photo_url": "https://lh3.googleusercontent.com/a/...",
+        "rating": 5,
+        "text": "Great trip, we limited out!",
+        "date": "2026-11-04",
+        "relative_date": "2 weeks ago"
+      }
+    ]
+  }
+}
+```
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `rating` | number or null | Google's overall average for the business (one decimal, e.g. `4.8`), over **all** its reviews, not just the ones returned. Null until the first sync after this feature went live. |
+| `review_count` | integer or null | Google's total number of reviews for the business. Null in the same case. |
+| `review_url` | string or null | Google's "write a review" page for the business. Null if the business has no Google review link set. |
+| `profile_url` | string or null | The business on Google Maps. Null if the business's Google place isn't known. |
+| `reviews` | array | Newest first (by when the review was written). Can be empty, e.g. no reviews with text at the minimum rating. |
+| `reviews[].name` | string | As Google shows it, shortened: "Sam Olson" → `Sam O.`; a single name stays as it is; anonymous reviewers are `A Google user`. |
+| `reviews[].initials` | string | For a letter avatar when there's no photo or the photo fails to load: `SO`, `C` for a single name, `G` for `A Google user`. |
+| `reviews[].photo_url` | string or null | The reviewer's public Google profile photo. Null when Google gave none or the reviewer is anonymous. Hosted by Google: load it directly, and fall back to `initials` if it fails. |
+| `reviews[].rating` | integer | 1 to 5 stars (in practice 4 or 5, from the minimum). |
+| `reviews[].text` | string | The review text, never empty (reviews without text are left out). Google's "(Translated by Google)" part is removed. Plain text: escape it when you print it. |
+| `reviews[].date` | string | When the review was written, `YYYY-MM-DD` in the business's timezone. **Work out "2 weeks ago" from this on the WordPress side**, so a cached response never shows a stale age. |
+| `reviews[].relative_date` | string | "2 weeks ago" as of when Growth Hub built the response. Can be up to an hour old (see Caching). Prefer `date`. |
+
+Only what's public on Google is ever returned. No reviewer email, phone, Google review ID, owner reply or anything internal to Growth Hub.
+
+### Without reviews
+
+```http
+HTTP/1.1 200 OK
+
+{"data": null}
+```
+
+`data` is `null` when:
+- **Show reviews on website** is off for the business (it's off until FoundFirst turns it on);
+- the business isn't connected to Google;
+- or its Google connection needs reconnecting.
+
+Hide the reviews section when `data` is null. Don't show an error.
+
+### Errors
+
+| Status | When | Body |
+| --- | --- | --- |
+| `401` | Missing, wrong or revoked key (see Authentication). Don't retry. | `{"message": "Invalid or revoked site key."}` |
+| `422` | `limit` isn't 1–20, or `min_rating` isn't 4 or 5. | `{"message": "limit must be between 1 and 20.", "errors": {"limit": ["…"]}}` or `{"message": "min_rating must be 4 or 5.", …}` |
+| `429` | Over the shared 30 requests a minute per key (see Rate limits). | `{"message": "Too Many Attempts."}` with `Retry-After` |
+
+### Caching
+
+Growth Hub caches the response for an hour per business and parameters, and sends `Cache-Control: max-age=3600, public`. A review sync or a settings change gives a fresh response on the next request. On the WordPress side, cache it for an hour too (e.g. a transient) rather than calling on every page view; it shares the 30 requests a minute with `/leads` and `/promo`.
+
