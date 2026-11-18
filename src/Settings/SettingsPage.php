@@ -14,6 +14,7 @@ use FoundFirst\GrowthHub\Leads\WpdbQueue;
 use FoundFirst\GrowthHub\Options;
 use FoundFirst\GrowthHub\Plugin;
 use FoundFirst\GrowthHub\Promo\PromoService;
+use FoundFirst\GrowthHub\Reviews\ReviewsService;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -106,6 +107,7 @@ final class SettingsPage {
 
 		if ( Options::base_url() !== $old_url || Options::site_key() !== $old_key ) {
 			PromoService::flush();
+			ReviewsService::flush();
 			// Leads that failed because of a bad key or URL can go through now.
 			if ( '' !== Options::site_key() ) {
 				Plugin::lead_sender()->retry_failed();

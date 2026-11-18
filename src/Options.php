@@ -24,6 +24,7 @@ final class Options {
 	public const QUEUE_LOCK   = 'ffgh_queue_lock';
 	public const PROMO_IMAGE  = 'ffgh_show_promo_image';
 	public const ANALYTICS    = 'ffgh_analytics_events';
+	public const REVIEWS_LAST = 'ffgh_reviews_last_'; // + minimum rating: the last good reviews feed, for outages.
 
 	public const DEFAULT_BASE_URL = 'https://app.foundfirst.us';
 

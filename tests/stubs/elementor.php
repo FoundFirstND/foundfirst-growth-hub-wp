@@ -1,6 +1,6 @@
 <?php
 /**
- * Just enough of Elementor / Elementor Pro for the form action and promo widget to load in tests.
+ * Just enough of Elementor / Elementor Pro for the form action and widgets to load in tests.
  *
  * @package FoundFirst\GrowthHub
  */
@@ -22,6 +22,8 @@ namespace Elementor {
 		const TEXT     = 'text';
 		const SWITCHER = 'switcher';
 		const RAW_HTML = 'raw_html';
+		const SELECT   = 'select';
+		const NUMBER   = 'number';
 	}
 }
 

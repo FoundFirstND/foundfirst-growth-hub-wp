@@ -3,7 +3,7 @@
 #   http://foundfirst-wp.test  (admin / password)
 # Safe to run again: each step skips what's already done.
 #
-# Env overrides: SITE_DIR, SITE_URL, DB_NAME, DB_USER, DB_PASS, DB_HOST
+# Env overrides: SITE_DIR, SITE_URL, DB_NAME, DB_USER, DB_PASS, DB_HOST, HERD_CA
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -15,6 +15,7 @@ DB_PASS="${DB_PASS:-}"
 DB_HOST="${DB_HOST:-127.0.0.1}"
 WP_PHAR="$HOME/.local/bin/wp"
 PRO_ZIP="$ROOT/local/elementor-pro.zip"
+HERD_CA="${HERD_CA:-$HOME/Library/Application Support/Herd/config/valet/CA/LaravelValetCASelfSigned.pem}"
 
 step() { printf '\n==> %s\n' "$*"; }
 
@@ -76,5 +77,34 @@ LINK="$SITE_DIR/wp-content/plugins/foundfirst-growth-hub"
 [[ -L "$LINK" ]] || ln -s "$ROOT" "$LINK"
 wp plugin activate foundfirst-growth-hub
 
+step "Trust Herd's certificate for https://growth-hub.test (local only)"
+# WordPress checks HTTPS certificates against its own CA bundle, which doesn't include Herd's
+# local CA. This mu-plugin adds Herd's CA for growth-hub.test only. SSL verification stays on.
+MU_DIR="$SITE_DIR/wp-content/mu-plugins"
+if [[ -f "$HERD_CA" ]]; then
+	mkdir -p "$MU_DIR/ffgh-local"
+	cat "$SITE_DIR/wp-includes/certificates/ca-bundle.crt" "$HERD_CA" > "$MU_DIR/ffgh-local/ca-bundle-with-herd.crt"
+	cat > "$MU_DIR/ffgh-local-ca.php" <<'PHP'
+<?php
+/**
+ * Local dev only: verify the local Growth Hub (growth-hub.test) against WordPress's CA bundle
+ * plus Herd's local CA. SSL verification stays on. Written by bin/setup-local.sh.
+ */
+add_filter(
+	'http_request_args',
+	function ( $args, $url ) {
+		if ( 'growth-hub.test' === wp_parse_url( $url, PHP_URL_HOST ) ) {
+			$args['sslcertificates'] = __DIR__ . '/ffgh-local/ca-bundle-with-herd.crt';
+		}
+		return $args;
+	},
+	10,
+	2
+);
+PHP
+else
+	echo "Skipped: Herd's CA not found at $HERD_CA (set HERD_CA). Calls to https://growth-hub.test will fail with cURL error 60."
+fi
+
 printf '\nDone: %s/wp-admin (admin / password)\n' "$SITE_URL"
-printf 'Settings → Growth Hub: use http://growth-hub.test and a key from your local Growth Hub.\n'
+printf 'Settings → Growth Hub: use https://growth-hub.test and a key from your local Growth Hub.\n'
