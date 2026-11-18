@@ -17,6 +17,8 @@ use FoundFirst\GrowthHub\Leads\RetryPolicy;
 use FoundFirst\GrowthHub\Leads\WpdbQueue;
 use FoundFirst\GrowthHub\Promo\PromoRenderer;
 use FoundFirst\GrowthHub\Promo\PromoService;
+use FoundFirst\GrowthHub\Reviews\ReviewsRenderer;
+use FoundFirst\GrowthHub\Reviews\ReviewsService;
 use FoundFirst\GrowthHub\Settings\SettingsPage;
 use FoundFirst\GrowthHub\Updates\Updater;
 
@@ -43,6 +45,13 @@ final class Plugin {
 	 * @var PromoRenderer|null
 	 */
 	private static ?PromoRenderer $renderer = null;
+
+	/**
+	 * Reviews renderer instance.
+	 *
+	 * @var ReviewsRenderer|null
+	 */
+	private static ?ReviewsRenderer $reviews = null;
 
 	/**
 	 * Register hooks. Called once from the main plugin file.
@@ -98,10 +107,11 @@ final class Plugin {
 	}
 
 	/**
-	 * Register the shortcode and front-end style.
+	 * Register the shortcodes and front-end assets.
 	 */
 	public static function init(): void {
 		self::promo_renderer()->register();
+		self::reviews_renderer()->register();
 	}
 
 	/**
@@ -154,5 +164,16 @@ final class Plugin {
 		}
 
 		return self::$renderer;
+	}
+
+	/**
+	 * Shared reviews renderer.
+	 */
+	public static function reviews_renderer(): ReviewsRenderer {
+		if ( null === self::$reviews ) {
+			self::$reviews = new ReviewsRenderer( new ReviewsService( new Client() ) );
+		}
+
+		return self::$reviews;
 	}
 }

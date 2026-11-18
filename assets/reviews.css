@@ -1,0 +1,329 @@
+/* FoundFirst Growth Hub Google reviews. Inherits the theme's fonts; colors are custom properties you can override. */
+.ffgh-reviews {
+	--ffgh-bg: #f6f7f8;
+	--ffgh-card: #fff;
+	--ffgh-text: #1f1f1f;
+	--ffgh-muted: #5f6368;
+	--ffgh-border: rgba(0, 0, 0, 0.12);
+	--ffgh-star: #b26200;
+	--ffgh-star-empty: #c9cdd2;
+	--ffgh-avatar: #e3e6ea;
+	--ffgh-gap: 1em;
+
+	position: relative;
+	box-sizing: border-box;
+	margin: 1.5em 0;
+	padding: 1.25em;
+	border-radius: 10px;
+	background: var(--ffgh-bg);
+	color: var(--ffgh-text);
+	font: inherit;
+	line-height: 1.5;
+}
+
+.ffgh-reviews--dark {
+	--ffgh-bg: #16181b;
+	--ffgh-card: #24272b;
+	--ffgh-text: #eceff1;
+	--ffgh-muted: #b0b6bc;
+	--ffgh-border: rgba(255, 255, 255, 0.14);
+	--ffgh-star: #fbbc04;
+	--ffgh-star-empty: #4a4f55;
+	--ffgh-avatar: #3a3f45;
+}
+
+.ffgh-reviews *,
+.ffgh-reviews *::before,
+.ffgh-reviews *::after {
+	box-sizing: inherit;
+}
+
+/* Header */
+.ffgh-reviews__header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5em 1.25em;
+	margin: 0 0 var(--ffgh-gap);
+}
+
+.ffgh-reviews .ffgh-reviews__title {
+	display: flex;
+	align-items: center;
+	gap: 0.5em;
+	flex: 1 1 100%;
+	margin: 0;
+	padding: 0;
+	color: inherit;
+	font-family: inherit;
+	font-size: 1.25em;
+	line-height: 1.3;
+}
+
+.ffgh-reviews__google {
+	flex: 0 0 auto;
+	width: 1.1em;
+	height: 1.1em;
+}
+
+.ffgh-reviews__summary {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.25em 0.5em;
+	margin: 0;
+}
+
+.ffgh-reviews__score {
+	font-size: 1.25em;
+	font-weight: 700;
+}
+
+.ffgh-reviews__count {
+	color: var(--ffgh-muted);
+}
+
+.ffgh-reviews .ffgh-reviews__all {
+	margin-inline-start: auto;
+	color: inherit;
+	font-weight: 600;
+	text-decoration: underline;
+	text-underline-offset: 0.15em;
+}
+
+/* Stars: one element, a star mask over a fill that's --ffgh-fill wide. */
+.ffgh-stars {
+	--ffgh-fill: 100%;
+
+	display: inline-block;
+	flex: 0 0 auto;
+	width: 5.5em;
+	height: 1.1em;
+	vertical-align: middle;
+	background: linear-gradient(90deg, var(--ffgh-star) var(--ffgh-fill), var(--ffgh-star-empty) var(--ffgh-fill));
+	-webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M10 1.3l2.7 5.5 6 .9-4.35 4.25 1.03 6L10 15.1l-5.38 2.85 1.03-6L1.3 7.7l6-.9z'/%3E%3C/svg%3E") 0 0 / 1.1em 1.1em repeat-x;
+	mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M10 1.3l2.7 5.5 6 .9-4.35 4.25 1.03 6L10 15.1l-5.38 2.85 1.03-6L1.3 7.7l6-.9z'/%3E%3C/svg%3E") 0 0 / 1.1em 1.1em repeat-x;
+}
+
+.ffgh-stars--5 {
+	--ffgh-fill: 100%;
+}
+
+.ffgh-stars--4 {
+	--ffgh-fill: 80%;
+}
+
+@media (forced-colors: active) {
+	.ffgh-stars {
+		forced-color-adjust: none;
+	}
+}
+
+/* Lists */
+.ffgh-reviews .ffgh-reviews__list {
+	/* Positioned so the screen-reader text inside off-screen slides is clipped with them
+	   (otherwise it stretches the page sideways on phones). */
+	position: relative;
+	display: grid;
+	gap: var(--ffgh-gap);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.ffgh-reviews--grid .ffgh-reviews__list {
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 18em), 1fr));
+}
+
+.ffgh-reviews--carousel .ffgh-reviews__list {
+	display: flex;
+	overflow-x: auto;
+	overscroll-behavior-x: contain;
+	scroll-snap-type: x mandatory;
+	scroll-padding-inline: 2px; /* Matches the padding, so the first card snaps to scrollLeft 0. */
+	scroll-behavior: smooth;
+	scrollbar-width: thin;
+	padding: 2px 2px 0.75em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.ffgh-reviews--carousel .ffgh-reviews__list {
+		scroll-behavior: auto;
+	}
+}
+
+.ffgh-reviews--carousel .ffgh-review {
+	flex: 0 0 min(85%, 21em);
+	scroll-snap-align: start;
+}
+
+/* Cards */
+.ffgh-reviews .ffgh-review {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5em;
+	margin: 0;
+	padding: 1em 1.25em;
+	border: 1px solid var(--ffgh-border);
+	border-radius: 8px;
+	background: var(--ffgh-card);
+}
+
+.ffgh-reviews .ffgh-review::before {
+	content: none;
+}
+
+.ffgh-review__head {
+	display: flex;
+	align-items: center;
+	gap: 0.75em;
+}
+
+.ffgh-review__avatar {
+	position: relative;
+	display: inline-flex;
+	flex: 0 0 auto;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	overflow: hidden;
+	border-radius: 50%;
+	background: var(--ffgh-avatar);
+	font-weight: 600;
+	line-height: 1;
+}
+
+.ffgh-reviews .ffgh-review__photo {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	max-width: none;
+	height: 100%;
+	margin: 0;
+	border-radius: 50%;
+	object-fit: cover;
+}
+
+.ffgh-review__meta {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.ffgh-review__name {
+	font-weight: 600;
+	overflow-wrap: anywhere;
+}
+
+.ffgh-review__date {
+	color: var(--ffgh-muted);
+	font-size: 0.875em;
+}
+
+.ffgh-review__text {
+	white-space: pre-line;
+	overflow-wrap: anywhere;
+}
+
+.ffgh-review__text--clamped {
+	display: -webkit-box;
+	overflow: hidden;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 5;
+	line-clamp: 5;
+}
+
+/* Buttons: reset whatever the theme does to <button>. */
+.ffgh-reviews .ffgh-review__more,
+.ffgh-reviews .ffgh-reviews__prev,
+.ffgh-reviews .ffgh-reviews__next {
+	-webkit-appearance: none;
+	appearance: none;
+	margin: 0;
+	border: 0;
+	background: none;
+	box-shadow: none;
+	color: inherit;
+	font: inherit;
+	text-transform: none;
+	letter-spacing: normal;
+	cursor: pointer;
+}
+
+.ffgh-reviews .ffgh-review__more {
+	align-self: flex-start;
+	padding: 0;
+	font-weight: 600;
+	text-decoration: underline;
+	text-underline-offset: 0.15em;
+}
+
+.ffgh-reviews__controls {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.5em;
+	margin: 0 0 0.75em;
+}
+
+.ffgh-reviews .ffgh-reviews__prev,
+.ffgh-reviews .ffgh-reviews__next {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2.5em;
+	height: 2.5em;
+	padding: 0;
+	border: 1px solid var(--ffgh-border);
+	border-radius: 50%;
+	background: var(--ffgh-card);
+	font-size: 1em;
+	font-weight: 700;
+	line-height: 1;
+}
+
+.ffgh-reviews .ffgh-reviews__prev span[aria-hidden],
+.ffgh-reviews .ffgh-reviews__next span[aria-hidden] {
+	font-size: 1.5em;
+	line-height: 1;
+}
+
+.ffgh-reviews [aria-disabled="true"] {
+	opacity: 0.4;
+	cursor: default;
+}
+
+.ffgh-reviews__controls[hidden],
+.ffgh-reviews .ffgh-review__more[hidden] {
+	display: none !important;
+}
+
+.ffgh-reviews a:focus-visible,
+.ffgh-reviews button:focus-visible,
+.ffgh-reviews__list:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 2px;
+}
+
+.ffgh-sr {
+	position: absolute !important;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+@media (max-width: 480px) {
+	.ffgh-reviews {
+		padding: 1em;
+	}
+
+	.ffgh-reviews .ffgh-reviews__all {
+		margin-inline-start: 0;
+	}
+}
