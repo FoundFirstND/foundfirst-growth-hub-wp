@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.6.0 (unreleased)
+
+- **Google reviews** from Growth Hub's new `GET /reviews` feed: the `[growthhub_reviews]` shortcode and the **Growth Hub Reviews** Elementor widget.
+  - Options: layout (carousel, grid, list), how many (default 6, up to 20), minimum rating (5 only or 4+), show photos, show dates, light/dark.
+  - The heading says honestly what's shown ("Recent 5-star reviews from Google" or "Recent 4+ star reviews from Google"), with the Google logo, the real overall rating and total count, and **See all reviews on Google** (the business on Google Maps).
+  - Each card shows the name, the reviewer's Google photo (or their initials when photos are off or a photo fails to load), stars, the text with **Read more** for long ones, and the date.
+  - No review schema markup.
+- Cached for an hour per minimum rating. If Growth Hub can't be reached, the last good copy (up to 7 days old) shows, or nothing; never an error. Reviews turned off in Growth Hub (`data: null`) or a refused key clear that copy. The cache is cleared when the site key or API URL changes.
+- Dates become "2 weeks ago" in the browser, so cached pages stay right. Works without JavaScript.
+- Accessible: a labelled carousel with buttons and arrow/Home/End keys, no autoplay, star ratings in text for screen readers, `alt=""` on photos next to the name.
+- `assets/reviews.css` and `assets/reviews.js` (no jQuery, no dependencies) load only on pages showing reviews. Fonts inherit from the theme.
+- `API.md` updated with the `/reviews` section from Growth Hub.
+
 ## 0.5.0 (2026-11-16)
 
 Includes everything in 0.4.0, which wasn't released on its own.

@@ -4,6 +4,7 @@ Connects a client's WordPress site to [FoundFirst Growth Hub](https://app.foundf
 
 - **Leads**: an Elementor Pro form action, **Send to Growth Hub**, delivers form submissions to the business's Growth Hub inbox. If Growth Hub can't be reached, the lead is queued and retried, so no lead is lost.
 - **Promo banner**: `[growthhub_promo]` and an Elementor widget show the business's current promo, and nothing when there isn't one.
+- **Google reviews**: `[growthhub_reviews]` and an Elementor widget show the business's recent Google reviews with its overall rating, and nothing when it doesn't show reviews.
 - **Google Analytics events**: `click_to_call` for phone-link clicks and `generate_lead` for successful Growth Hub form submissions, so Growth Hub Reports can show call clicks and website form leads. No personal data is sent.
 - **Updates**: the plugin updates itself from this repo's GitHub releases through the normal WordPress update screen.
 
@@ -12,7 +13,7 @@ The API contract is in [API.md](API.md).
 ## Requirements
 
 - PHP 8.1+, WordPress 6.4+
-- Elementor Pro for the form action. Free Elementor is enough for the promo widget, and the shortcode works without Elementor.
+- Elementor Pro for the form action. Free Elementor is enough for the promo and reviews widgets, and the shortcode works without Elementor.
 
 ## Install on a site
 
@@ -91,6 +92,36 @@ When the owner posts a video with Text to Post, the banner shows a video player 
   - The swap after a failure is done by `assets/promo.js`, a tiny footer script. It loads only on pages with a video banner (or a Promo widget).
 - **Extra classes:** `.ffgh-promo--video` (wrapper), `.ffgh-promo__video` (`<video>`), `.ffgh-promo__video-link` (the thumbnail link), `.ffgh-promo__play` (the badge) and `.ffgh-promo__text-link` (the linked caption).
 
+### Google reviews
+
+Shows the business's newest Google reviews from Growth Hub (`GET /reviews` in [API.md](API.md)). Nothing shows until FoundFirst turns on **Show reviews on website** for the business in Growth Hub.
+
+- Shortcode: `[growthhub_reviews]`, with any of these (defaults first):
+  - `layout="carousel|grid|list"`
+  - `count="6"` (1 to 20)
+  - `min_rating="5|4"` (5 stars only, or 4 and up; the business's own minimum in Growth Hub can be stricter)
+  - `photos="yes|no"` (reviewers' Google photos; with `no` only their initials show and nothing loads from Google)
+  - `dates="yes|no"`
+  - `style="light|dark"`
+  - `class="my-class"`
+- Elementor: drag in the **Growth Hub Reviews** widget. It has the same options. In the editor it shows a placeholder when there's nothing to show, and visitors see nothing.
+- **What it shows:** a heading that says exactly what's shown ("Recent 5-star reviews from Google" or "Recent 4+ star reviews from Google") with the Google logo, the business's real overall rating and total count on Google, and **See all reviews on Google** (the business on Google Maps). Each card has the name, photo or initials, stars, the text (long ones get **Read more**) and the date.
+- **No review schema markup**, on purpose: Google ignores self-served review stars for local businesses.
+- **Caching:** fetched on the server and cached for an hour (one cache per minimum rating, whatever the count). If Growth Hub can't be reached, the last good copy (up to 7 days old) is shown, or nothing. Never an error. When the business turns reviews off, they disappear within the hour (plus any page cache's own lifetime).
+- **Dates** are printed as dates and turned into "2 weeks ago" in the visitor's browser, so a cached page never shows a stale age.
+- **Without JavaScript** it still works: dates show as dates, long reviews show in full, and the carousel scrolls sideways.
+- **Accessibility:** the carousel is a labelled region with Previous/Next buttons and ←/→/Home/End keys on the focused list. It never autoplays. Stars have text for screen readers. Photos have `alt=""` because the name is right next to them.
+- `assets/reviews.css` and `assets/reviews.js` (no dependencies, footer) load only on pages that show reviews. Fonts inherit from the theme. Colors are custom properties you can override:
+
+```
+.ffgh-reviews                      section (.ffgh-reviews--carousel|grid|list, --light|dark)
+  --ffgh-bg --ffgh-card --ffgh-text --ffgh-muted --ffgh-border --ffgh-star --ffgh-star-empty --ffgh-avatar --ffgh-gap
+  .ffgh-reviews__header            heading, rating summary, link to Google
+  .ffgh-reviews__list > .ffgh-review
+    .ffgh-review__avatar           .ffgh-review__initials + img.ffgh-review__photo
+    .ffgh-review__name, .ffgh-review__date, .ffgh-stars, .ffgh-review__text, .ffgh-review__more
+```
+
 ### Google Analytics events
 
 **Settings → Growth Hub → Send call clicks and form leads to Google Analytics** (on by default, also on sites that updated from 0.2.x). When it's off, the script isn't loaded at all.
@@ -124,7 +155,7 @@ The plugin uses [plugin-update-checker](https://github.com/YahnisElsts/plugin-up
 
 ### Uninstall
 
-Deactivating stops the retry cron but keeps the settings and queued leads. **Deleting** the plugin removes its settings, cached promo, cron events and the queue table.
+Deactivating stops the retry cron but keeps the settings and queued leads. **Deleting** the plugin removes its settings, cached promo and reviews, cron events and the queue table.
 
 ## Local development
 
@@ -155,8 +186,8 @@ tail -f wp-content/debug.log
 ### Tests and lint
 
 ```bash
-composer test      # PHPUnit + Brain Monkey: sending, queue, retries, payload, consent, promo, GA setting (no WordPress needed)
-composer test:js   # node --test: assets/tracking.js in a vm with a fake DOM and jQuery (Node 18+, no npm install)
+composer test      # PHPUnit + Brain Monkey: sending, queue, retries, payload, consent, promo, reviews, GA setting (no WordPress needed)
+composer test:js   # node --test: assets/tracking.js, promo.js and reviews.js in a vm with a fake DOM (Node 18+, no npm install)
 composer lint      # WordPress coding standards + PHP 8.1 compatibility
 ```
 
@@ -184,7 +215,7 @@ On http://foundfirst-wp.test (and on foundfirst.us before each release), with De
 4. Run `composer test && composer test:js && composer lint`.
 5. Commit: `Release vX.Y.Z`.
 6. `bin/build-zip.sh` builds `dist/foundfirst-growth-hub.zip` from the committed code.
-7. **Install the zip on foundfirst.us first** (Plugins → Add New → Upload, replace current). Submit a real form, check it arrives in Growth Hub, check the email still arrives, check the settings page status and the promo. Run the Google Analytics manual test above (at least items 1, 3 and 8).
+7. **Install the zip on foundfirst.us first** (Plugins → Add New → Upload, replace current). Submit a real form, check it arrives in Growth Hub, check the email still arrives, check the settings page status and the promo, and a page with Google reviews. Run the Google Analytics manual test above (at least items 1, 3 and 8).
 8. Tag and push: `git tag vX.Y.Z && git push origin main --tags`.
 9. Create the GitHub release from the tag, paste the changelog entry and **attach `dist/foundfirst-growth-hub.zip`** (keep that exact file name):
    `gh release create vX.Y.Z dist/foundfirst-growth-hub.zip --title vX.Y.Z --notes-file <notes>`
