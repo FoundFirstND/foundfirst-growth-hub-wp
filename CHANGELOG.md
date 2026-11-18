@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.6.0 (unreleased)
+## 0.6.0 (2026-11-17)
 
 - **Google reviews** from Growth Hub's new `GET /reviews` feed: the `[growthhub_reviews]` shortcode and the **Growth Hub Reviews** Elementor widget.
   - Options: layout (carousel, grid, list), how many (default 6, up to 20), minimum rating (5 only or 4+), show photos, show dates, light/dark.

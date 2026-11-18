@@ -170,7 +170,9 @@ bin/setup-local.sh
 
 This starts MySQL, creates the `foundfirst_wp` database and installs WordPress in `~/Herd/foundfirst-wp`, served at **http://foundfirst-wp.test** (log in as `admin` / `password`). It also installs Elementor (and Elementor Pro from `local/elementor-pro.zip`) and **symlinks this repo** into `wp-content/plugins/foundfirst-growth-hub`, so code changes show up immediately. Activate your Elementor Pro licence in WP admin.
 
-Point **Settings → Growth Hub** at `http://growth-hub.test` with a key from your local Growth Hub.
+Point **Settings → Growth Hub** at `https://growth-hub.test` with a key from your local Growth Hub. Herd serves Growth Hub over HTTPS only (`http://` redirects, and the plugin doesn't follow redirects).
+
+WordPress checks HTTPS certificates against its own CA bundle, which doesn't know Herd's local CA, so calls would fail with `cURL error 60`. The setup script therefore writes a local-only mu-plugin, `wp-content/mu-plugins/ffgh-local-ca.php`, that adds Herd's CA (from `~/Library/Application Support/Herd/config/valet/CA/`, override with `HERD_CA`) for `growth-hub.test` only. Certificate checks stay on. Run the script again after a WordPress update or if Herd's CA changes, to rebuild the bundle in `wp-content/mu-plugins/ffgh-local/`.
 
 > **Never click "Delete" on the plugin in the local site's Plugins screen.** It's a symlink to this repo, and WordPress may delete the repo's files through it. Deactivate it instead. To test uninstall, run `uninstall.php` with WP-CLI (`wp eval 'define("WP_UNINSTALL_PLUGIN", 1); include WP_PLUGIN_DIR . "/foundfirst-growth-hub/uninstall.php";'`), or use the release zip on a separate site.
 
