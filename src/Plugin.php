@@ -10,6 +10,7 @@ namespace FoundFirst\GrowthHub;
 use FoundFirst\GrowthHub\Analytics\Tracking;
 use FoundFirst\GrowthHub\Api\Client;
 use FoundFirst\GrowthHub\Elementor\PromoWidget;
+use FoundFirst\GrowthHub\Elementor\ReviewsWidget;
 use FoundFirst\GrowthHub\Elementor\SendToGrowthHubAction;
 use FoundFirst\GrowthHub\Leads\FailureNotifier;
 use FoundFirst\GrowthHub\Leads\LeadSender;
@@ -135,12 +136,13 @@ final class Plugin {
 	}
 
 	/**
-	 * Add the promo widget to Elementor.
+	 * Add the promo and reviews widgets to Elementor.
 	 *
 	 * @param \Elementor\Widgets_Manager $widgets Widgets manager.
 	 */
 	public static function register_widget( $widgets ): void {
 		$widgets->register( new PromoWidget() );
+		$widgets->register( new ReviewsWidget() );
 	}
 
 	/**
